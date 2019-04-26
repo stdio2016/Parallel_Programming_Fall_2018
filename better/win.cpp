@@ -50,9 +50,9 @@ LRESULT CALLBACK processWinMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
         GetObject(hBmp, sizeof bmp, &bmp);
         RECT rect, cliRect;
         GetWindowRect(hwnd, &rect);
-		GetClientRect(hwnd, &cliRect);
-		int bx = rect.right - rect.left - cliRect.right;
-		int by = rect.bottom - rect.top - cliRect.bottom;
+        GetClientRect(hwnd, &cliRect);
+        int bx = rect.right - rect.left - cliRect.right;
+        int by = rect.bottom - rect.top - cliRect.bottom;
         SetWindowPos(hwnd, HWND_TOPMOST, rect.left, rect.top, bmp.bmWidth + bx, bmp.bmHeight + by, SWP_NOZORDER | SWP_NOACTIVATE);
         // update image
         InvalidateRect(hwnd, NULL, TRUE);
