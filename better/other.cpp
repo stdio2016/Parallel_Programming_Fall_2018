@@ -7,10 +7,9 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
 
-using namespace std;
 using namespace cv;
 
-void show_image(const char *filename) {
+void show_image(const char *outputblur_name) {
     // show the output file
     Mat img = imread(outputblur_name);
     imshow("Current progress", img);

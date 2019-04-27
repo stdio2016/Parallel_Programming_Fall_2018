@@ -72,7 +72,7 @@ int my_main(int argc, char* argv[])
 
     if (argc < 2)
     {
-        printf("Please provide filename for Gaussian Blur. usage ./gb_std.o <BMP image file>");
+        printf("Please provide filename for Gaussian Blur. usage ./gb_std.o <BMP image file>\n");
         return 1;
     }
 

@@ -346,3 +346,4 @@ healthchecksdb
 MigrationBackup/
 
 *_blur_*.bmp
+*.o
