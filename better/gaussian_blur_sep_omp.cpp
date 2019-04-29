@@ -99,7 +99,7 @@ int my_main(int argc, char* argv[])
 
     if (argc < 2)
     {
-        printf("Please provide filename for Gaussian Blur. usage ./gb_sep_std.o <BMP image file>");
+        printf("Please provide filename for Gaussian Blur. usage ./gb_sep_omp.o <BMP image file>");
         return 1;
     }
 
@@ -146,9 +146,10 @@ int my_main(int argc, char* argv[])
         //apply the Gaussian filter to the image, RGB respectively
         string tmp(inputfile_name);
         int segment_cnt = 1;
-        outputblur_name = inputfile_name.substr(0, inputfile_name.size() - 4)+ "_blur_sep.bmp";
+        outputblur_name = inputfile_name.substr(0, inputfile_name.size() - 4)+ "_blur_sep_omp.bmp";
 
         // blur in x axis
+        #pragma omp parallel for num_threads(4)
         for (int j = 0; j < img_height; j++) 
         {
             for (int i = 0; i < img_width; i++)
@@ -163,6 +164,7 @@ int my_main(int argc, char* argv[])
         }
         write_and_show(bmpReader, outputblur_name);
         // blur in y axis
+        #pragma omp parallel for num_threads(4)
         for (int j = 0; j < img_height; j++) 
         {
             for (int i = 0; i < img_width; i++)

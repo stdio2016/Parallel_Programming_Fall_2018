@@ -18,10 +18,10 @@
     <ClCompile Include="..\bmpReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\win.cpp">
+    <ClCompile Include="..\gaussian_blur_sep_omp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\gaussian_blur_standard.cpp">
+    <ClCompile Include="..\win.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
