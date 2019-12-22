@@ -87,6 +87,8 @@ int BmpReader::WriteBMP(char const *f, int a_width, int a_height, unsigned char 
 		printf("fopen fname_t error\n");
 		return -1;
 	}
+width = a_width;
+height = a_height;
 
 	// file size
 	int row = width * byte_per_pixel;

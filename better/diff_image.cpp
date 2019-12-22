@@ -13,8 +13,8 @@ int main(int argc, char* argv[])
     ifstream f1;
     ifstream f2;
     
-    f1.open(f_name1);
-    f2.open(f_name2);
+    f1.open(f_name1.c_str());
+    f2.open(f_name2.c_str());
 
     if (!f1.is_open())
     {
