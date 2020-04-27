@@ -27,7 +27,7 @@ unsigned char *input_image, *pic_blur, *output_image;
 
 // variables for cuda parallel processing
 int TILE_WIDTH;
-__constant__ unsigned int const_filter_G[8][32];
+__constant__ unsigned int const_filter_G[12][32];
 
 __device__ int clamp(int x, int b) {
     return min(max(x,0), b-1);
@@ -59,29 +59,43 @@ __global__ void cuda_output_sum(unsigned int *cuda_sum, unsigned char *cuda_outp
 
 __global__ void cuda_gaussian_fast(int img_width, int img_height, int ws, int sx, int sy,
         unsigned char *img, unsigned int *sum, int shift) {
-    __shared__ unsigned int img_row[16][64];
-    int x = threadIdx.x + blockIdx.x * blockDim.x - ws/2 + sx;
-    int y = threadIdx.y + blockIdx.y * blockDim.y - ws/2 + sy;
+    __shared__ unsigned int img_row[24][64];
+    int x = threadIdx.x + blockIdx.x * 32 - ws/2 + sx;
+    int y = threadIdx.y + blockIdx.y * 12 - ws/2 + sy;
     int tx = threadIdx.x;
     int ty = threadIdx.y;
     // fetch pixel
-    img_row[ty][tx] = getPixel(img, img_width, img_height, shift, x, y);
-    img_row[ty][tx+32] = getPixel(img, img_width, img_height, shift, x+32, y);
-    img_row[ty+8][tx] = getPixel(img, img_width, img_height, shift, x, y+8);
-    img_row[ty+8][tx+32] = getPixel(img, img_width, img_height, shift, x+32, y+8);
+    for (int i = 0; i < 6; i++) {
+        img_row[ty+i*4][tx] = getPixel(img, img_width, img_height, shift, x, y+i*4);
+        img_row[ty+i*4][tx+32] = getPixel(img, img_width, img_height, shift, x+32, y+i*4);
+    }
     __syncthreads();
-    x = threadIdx.x + blockIdx.x * blockDim.x;
-    y = threadIdx.y + blockIdx.y * blockDim.y;
+    x = threadIdx.x + blockIdx.x * 32;
+    y = threadIdx.y + blockIdx.y * 12;
     if (x >= img_width || y >= img_height) return ;
     // compute convolution
-    unsigned int a = sum[x + y * img_width];
-    for (int i = 0; i < 8; i++) {
-        #pragma unroll 32
+    unsigned int a1 = sum[x + y * img_width];
+    unsigned int a2 = y+4<img_height ? sum[x + (y+4) * img_width] : 0;
+    unsigned int a3 = y+8<img_height ? sum[x + (y+8) * img_width] : 0;
+    for (int i = 0; i < 4; i++) {
+        #pragma unroll 8
         for (int j = 0; j < 32; j++) {
-            a += img_row[i+ty][j+tx] * const_filter_G[i][j];
+            a1 += img_row[i+ty][j+tx] * const_filter_G[i][j];
+            a1 += img_row[i+4+ty][j+tx] * const_filter_G[i+4][j];
+            a1 += img_row[i+8+ty][j+tx] * const_filter_G[i+8][j];
+            a2 += img_row[i+4+ty][j+tx] * const_filter_G[i][j];
+            a2 += img_row[i+8+ty][j+tx] * const_filter_G[i+4][j];
+            a2 += img_row[i+12+ty][j+tx] * const_filter_G[i+8][j];
+            a3 += img_row[i+8+ty][j+tx] * const_filter_G[i][j];
+            a3 += img_row[i+12+ty][j+tx] * const_filter_G[i+4][j];
+            a3 += img_row[i+16+ty][j+tx] * const_filter_G[i+8][j];
         }
     }
-    sum[x + y * img_width] = a;
+    sum[x + y * img_width] = a1;
+    if (y+4 < img_height)
+      sum[x + (y+4) * img_width] = a2;
+    if (y+8 < img_height)
+      sum[x + (y+8) * img_width] = a3;
 }
 
 __global__ void cuda_gaussian_filter(unsigned char* cuda_input_image, unsigned char* cuda_output_image,int img_width, int img_height, int shift, uint32* cuda_filter_G, int ws, uint32 FILTER_SCALE, int img_border)
@@ -241,12 +255,12 @@ int my_main(int argc, char* argv[])
         cudaMemset(cuda_sum, 0, (img_width * img_height) * sizeof(unsigned int));
         //cuda_gaussian_filter<<<grid_size, block_size>>>(cuda_input_image+added_bytes, cuda_output_image, img_width, img_height, i, cuda_filter_G, (int)sqrt((int)FILTER_SIZE), FILTER_SCALE, resolution);
         
-        for (int sy = 0; sy < ws; sy+=8) {
+        for (int sy = 0; sy < ws; sy+=12) {
             for (int sx = 0; sx < ws; sx+=32) {
-                dim3 grid_size((img_width-1)/32+1, (img_height-1)/8+1);
-                dim3 block_size(32, 8);
-                int cpu_filter[8][32];
-                for (int ty = 0; ty < 8; ty++)
+                dim3 grid_size((img_width-1)/32+1, (img_height-1)/12+1);
+                dim3 block_size(32, 4);
+                int cpu_filter[12][32];
+                for (int ty = 0; ty < 12; ty++)
                     for (int tx = 0; tx < 32; tx++)
                         cpu_filter[ty][tx] = ty+sy < ws && tx+sx < ws ? filter_G[(ty+sy)*ws+tx+sx] : 0;
                 cudaMemcpyToSymbol(const_filter_G, cpu_filter, sizeof cpu_filter);
